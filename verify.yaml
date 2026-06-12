@@ -1,0 +1,10 @@
+appId: com.mlee305.repro-expo-router-link-preview-a11y
+---
+- launchApp
+# Control: the plain Link row IS exposed — assert by its testID.
+- assertVisible:
+    id: "row-plain-link"
+# Bug: the Link.Trigger+Link.Preview row is NOT in the accessibility tree.
+# Assert it is NOT findable by its testID (would throw if the row were exposed).
+- assertNotVisible:
+    id: "row-with-preview"

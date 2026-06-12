@@ -39,6 +39,24 @@ Only Row A is exposed. Row B — the whole subtree behind `Link.Trigger` /
   `XCUIApplication().debugDescription`) contains `row-plain-link` and Row A's
   text, but no `row-with-preview` and none of Row B's content.
 
+## Captured evidence (this repo)
+
+Verified on an iPhone 17 / iOS 26.5 simulator (Release build):
+
+- [`verify.yaml`](verify.yaml) — a Maestro flow asserting `row-plain-link` **is**
+  visible and `row-with-preview` is **not**; both assertions pass.
+- [`accessibility-hierarchy.json`](accessibility-hierarchy.json) — the full
+  `maestro hierarchy` dump. `row-plain-link` appears once; `row-with-preview`
+  appears zero times.
+- [`screenshot.png`](screenshot.png) — both rows visibly rendered on screen.
+
+Reproduce the check yourself:
+
+```sh
+npx expo run:ios --configuration Release
+maestro test verify.yaml
+```
+
 The row still works for sighted touch users (tap navigates, long-press shows
 the preview) — it is only assistive tech and UI-test tooling that lose it.
 
