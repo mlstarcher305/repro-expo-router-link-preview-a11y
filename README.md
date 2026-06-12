@@ -1,56 +1,57 @@
-# Welcome to your Expo app 👋
+# Repro: expo-router `Link.Preview` removes the wrapped subtree from the iOS accessibility tree
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Minimal reproduction for an expo-router bug on iOS: wrapping a row in
+`<Link.Trigger>` with a sibling `<Link.Preview />` makes the **entire wrapped
+subtree invisible to the iOS accessibility tree** — VoiceOver cannot focus it
+and XCUITest-based tools (Appium, Maestro, Detox, the Accessibility Inspector)
+cannot see it, even when the trigger child has an explicit
+`accessibilityLabel` and `testID`.
 
-## Get started
+## Setup
 
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```sh
+npm install
+npx expo run:ios
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## What the app renders
 
-### Other setup steps
+[`src/app/index.tsx`](src/app/index.tsx) renders two visually identical rows:
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+- **Row A** — plain `<Link asChild><Pressable …>` (control)
+- **Row B** — the same structure wrapped in `<Link.Trigger>` with a sibling
+  `<Link.Preview />`
 
-## Learn more
+Both Pressables have an `accessibilityLabel` and a `testID`.
 
-To learn more about developing your project with Expo, look at the following resources:
+## Expected
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+Both rows are exposed to the accessibility tree: VoiceOver can focus each row,
+and an XCUITest hierarchy dump shows both labels/identifiers.
 
-## Join the community
+## Actual
 
-Join our community of developers creating universal apps.
+Only Row A is exposed. Row B — the whole subtree behind `Link.Trigger` /
+`Link.Preview`, including its text — is missing entirely:
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- VoiceOver skips the row (it cannot be focused at all).
+- An XCUITest hierarchy dump (e.g. `maestro hierarchy`, or
+  `XCUIApplication().debugDescription`) contains `row-plain-link` and Row A's
+  text, but no `row-with-preview` and none of Row B's content.
+
+The row still works for sighted touch users (tap navigates, long-press shows
+the preview) — it is only assistive tech and UI-test tooling that lose it.
+
+## Why this matters
+
+Any list that adopts `Link.Preview` for native peek-previews becomes
+completely unusable with VoiceOver, and untestable with every XCUITest-based
+E2E framework. We had to remove `Link.Preview`/`Link.Menu` from our app's list
+rows after our accessibility/E2E run found every list row missing.
+
+## Environment
+
+- Expo SDK 56 (`expo@56.0.11`, `expo-router@56.2.10`) — also reproduced on
+  `expo-router@56.2.8`
+- iOS 26.5 simulator (iPhone 17), Xcode 26.5 — also reproduced on iOS 26.1
+- New Architecture (SDK 56 default)

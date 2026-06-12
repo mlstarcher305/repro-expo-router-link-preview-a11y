@@ -8,7 +8,8 @@
     "scheme": "reproexporouterlinkpreviewa11y",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "com.mlee305.repro-expo-router-link-preview-a11y"
     },
     "android": {
       "adaptiveIcon": {
